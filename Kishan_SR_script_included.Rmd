@@ -1,0 +1,269 @@
+---
+title: "Kishan_SR_script_included"
+author: "Kishan K. Chudasama"
+date: "1/8/2018"
+output:
+  html_document: default
+  pdf_document: default
+  word_document: default
+---
+
+```{r setup, include=FALSE}
+library(knitr)
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## R Markdown
+
+This is an R Markdown document. Markdown is a simple formatting syntax for authoring HTML, PDF, and MS Word documents. For more details on using R Markdown see <http://rmarkdown.rstudio.com>.
+
+When you click the **Knit** button a document will be generated that includes both content as well as the output of any embedded R code chunks within the document. You can embed an R code chunk like this:
+
+
+## Set data location on PC (C:/texts) can be changed.
+
+```{r}
+cname <- file.path("C:", "included")  
+cname
+dir(cname)
+```
+
+## Set data location on a MAC (Desktop/texts)
+
+```{r}
+#cname <- file.path("~", "Desktop", "included")   
+#cname
+#dir(cname)
+```
+
+## Load package "tm" for text mining in R
+
+```{r}
+library(tm)
+```
+
+## Load text into R
+
+```{r}
+docs <- VCorpus(DirSource(cname))
+summary(docs)
+```
+
+## Inspect documents in the corpus
+```{r}
+inspect(docs)
+```
+
+## Inspect documents in the corpus - In this case, you are getting the details on only the second document in the corpus. But this is not a lot of information. Essentially, all you get is the number of characters in each document in the corpus. Documents are identified by the number in which they are loaded.
+
+```{r}
+#writeLines(as.character(docs[1]))
+```
+
+## Preprosessing documents to remove unnecessary text.
+
+```{r}
+docs <- tm_map(docs,removePunctuation)
+#writeLines(as.character(docs[1]))
+```
+
+## Preprosessing documents to remove special characters. Take a look at the document to see if some if any special characters can be removed. Skip otherwise.
+
+```{r}
+for (j in seq(docs)) {
+    docs[[j]] <- gsub("/", " ", docs[[j]])
+    docs[[j]] <- gsub("@", " ", docs[[j]])
+    docs[[j]] <- gsub("\\|", " ", docs[[j]])
+    docs[[j]] <- gsub("\u2028", " ", docs[[j]])
+}
+#writeLines(as.character(docs[1]))
+```
+
+## Preprosessing documents to remove numbers
+
+```{r}
+docs <- tm_map(docs, removeNumbers)  
+#writeLines(as.character(docs[1]))
+```
+
+## Preprosessing documents to convert to lowercase
+
+```{r}
+docs <- tm_map(docs, tolower)   
+docs <- tm_map(docs, PlainTextDocument)
+DocsCopy <- docs
+```
+
+## Preprosessing documents to remove stopwords
+
+```{r}
+docs <- tm_map(docs, removeWords, stopwords("english"))   
+docs <- tm_map(docs, PlainTextDocument)
+#writeLines(as.character(docs[1]))
+```
+
+## Preprosessing documents to remove particular words. If any words might skew the analysis then take a moment to read and remove those words from the document.
+
+```{r}
+docs <- tm_map(docs, removeWords, c("treatment", "patients", "treatments", "patient", "patients", "care", "clinical", "results", "conclusions", "methods", "minutes", "study", "using", "may", "analysis", "time", "emergency", "hospital", "trauma", "included", "injury", "will", "within", "weights", "assessement", "background", "benefit", "compared", "process", "group", "conclusion", "use", "acute"))
+#writeLines(as.character(docs[1]))
+```
+
+## Combining words that should stay together
+
+```{r}
+for (j in seq(docs))
+{
+  #docs[[j]] <- gsub("mobile stroke", "mobile-stroke", docs[[j]])
+  docs[[j]] <- gsub("stroke mobile", "stroke-mobile", docs[[j]])
+  docs[[j]] <- gsub("mobile phone", "mobile-phone", docs[[j]])
+  docs[[j]] <- gsub("mobile device", "mobile-device", docs[[j]])
+  docs[[j]] <- gsub("mobile devices", "mobile-device", docs[[j]])
+  docs[[j]] <- gsub("msu", "mobile-stroke-unit", docs[[j]])
+  docs[[j]] <- gsub("mobile stroke units", "mobile-stroke-unit", docs[[j]])
+  docs[[j]] <- gsub("mobile stroke unit", "mobile-stroke-unit", docs[[j]])
+  docs[[j]] <- gsub("mstu", "mobile-stroke-unit", docs[[j]])
+  docs[[j]] <- gsub("mobile stroke treatment unit", "mobile-stroke-unit", docs[[j]])
+  docs[[j]] <- gsub("strokes", "stroke", docs[[j]])
+  docs[[j]] <- gsub("stroke ambulance", "stroke-ambulance", docs[[j]])
+  docs[[j]] <- gsub("stroke emergency mobile", "stroke-emergency-mobile", docs[[j]])
+  docs[[j]] <- gsub("stroke ambulance", "stroke-ambulance", docs[[j]])
+  docs[[j]] <- gsub("stroke ambulances", "stroke-ambulance", docs[[j]])
+  docs[[j]] <- gsub("mobile health", "mobile-health", docs[[j]])
+  docs[[j]] <- gsub("mobile simulation", "mobile-simulation", docs[[j]])
+  docs[[j]] <- gsub("mobile telestroke", "mobile-telestroke", docs[[j]])
+  docs[[j]] <- gsub("mobile prehospital", "mobile-prehospital", docs[[j]])
+  docs[[j]] <- gsub("mobile ambulance", "mobile-ambulance", docs[[j]])
+  docs[[j]] <- gsub("mobile telemedicine", "mobile-telemedicine", docs[[j]])
+  docs[[j]] <- gsub("mobile transport", "mobile-transport", docs[[j]])
+  docs[[j]] <- gsub("mobile application", "mobile-application", docs[[j]])
+  docs[[j]] <- gsub("mobile applications", "mobile-application", docs[[j]])
+  docs[[j]] <- gsub("mobile app", "mobile-app", docs[[j]])
+  docs[[j]] <- gsub("mobile information", "mobile-information", docs[[j]])
+  docs[[j]] <- gsub("mobile platform", "mobile-platform", docs[[j]])
+  docs[[j]] <- gsub("mobile phone", "mobile-phone", docs[[j]])
+  docs[[j]] <- gsub("stroke ambulance", "stroke-ambulance", docs[[j]])
+  #docs[[j]] <- gsub("strokes", "stroke", docs[[j]])
+}
+docs <- tm_map(docs, PlainTextDocument)
+#writeLines(as.character(docs[1]))
+```
+
+## Stripping unnecesary whitespace from your documents
+
+```{r}
+docs <- tm_map(docs, stripWhitespace)
+#writeLines(as.character(docs[1]))
+```
+
+
+## Treat documents as text documents
+
+```{r}
+docs <- tm_map(docs, PlainTextDocument)
+```
+
+## Create document term matrix
+
+```{r}
+dtm <- DocumentTermMatrix(docs)   
+dtm 
+```
+
+## Transpose matrix
+
+```{r}
+tdm <- TermDocumentMatrix(docs)   
+tdm
+#inspect(tdm)
+```
+
+## Explore data! 
+
+```{r}
+freq <- colSums(as.matrix(dtm))   
+length(freq)   
+ord <- order(freq)   
+m <- as.matrix(dtm)   
+dim(m)   
+write.csv(m, file="includedDocumentTermMatrix.csv")
+```
+
+## Removing sparse terms
+
+```{r}
+dtms <- removeSparseTerms(dtm, 0.15)
+```
+
+## See word frequencies
+
+```{r}
+head(table(freq), 20) 
+```
+
+## See the top frequent words
+```{r}
+tail(table(freq), 20)
+```
+
+## View a table of the terms after removing sparse terms
+
+```{r}
+#freq <- colSums(as.matrix(dtms))   
+#freq  
+```
+
+## This will identify all terms that appear frequently (in this case, 50 or more times). Use this to remove even more words from the text.
+
+```{r}
+findFreqTerms(tdm, lowfreq=75)  
+```
+
+## Plot word 
+```{r}
+wf <- data.frame(word=names(freq), freq=freq)
+head(wf) 
+```
+## Plot word frequencies - at least 50 times
+
+```{r}
+library(ggplot2)   
+wf <- data.frame(word=names(freq), freq=freq)   
+p <- ggplot(subset(wf, freq>100), aes(word, freq))    
+p <- p + geom_bar(stat="identity")   
+p <- p + theme(axis.text.x=element_text(angle=45, hjust=1))   
+p  
+```
+
+## Word clouds
+
+```{r}
+library(wordcloud)
+library(RColorBrewer)
+dtms <- removeSparseTerms(dtm, 0.01) # Prepare the data (max 15% empty space)   
+freq <- colSums(as.matrix(dtm)) # Find word frequencies   
+dark2 <- brewer.pal(6, "Dark2")
+set.seed(1234)
+wordcloud(names(freq), freq, max.words=50,random.order=FALSE, rot.per=0.2, colors=dark2)
+```
+
+
+## Word correlations
+```{r}
+findAssocs(tdm, terms = "mobile", corlimit = 0.9)
+```
+
+```{r}
+#head(d, 10)
+```
+
+```{r}
+#inspect(tdm)
+```
+```{r}
+#plot(dtm, corThreshold = 0.80)
+
+#plot(dtm, terms = names(findAssocs(dtm,term="humanities",0.8)[["humanities"]]), corThreshold = 0.80)
+
+#plot(dtm, terms = names(findAssocs(dtm,term="humanities",0.8)[["humanities"]]), corThreshold = 0.80, attrs=list(node=list(label="foo", fillcolor="lightgreen", fontsize="16", shape="ellipse"), edge=list(color="cyan"), graph=list(rankdir="LR")))
+```
