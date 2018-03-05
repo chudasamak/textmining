@@ -1,0 +1,163 @@
+---
+title: "Find Pubmed publications on subject"
+author: "Kishan Kumar Chudasama"
+date: "20 februar 2018"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## Open Libraries
+```{r}
+library(RISmed)
+library(ggplot2)
+library(tm)
+```
+
+
+## Set query
+```{r}
+query <- "(mobile AND stroke AND unit AND prehospital)"
+```
+
+## Count records
+```{r}
+msu_search <- EUtilsSummary(query, type="esearch",db = "pubmed",mindate=2010, maxdate=2018, retmax=500)
+
+QueryCount(msu_search)
+queryname <- QueryId(msu_search)
+queryname
+```
+## Specification of query Criteria with minimum and maximum date of publication of Article, number
+of Articles to return
+
+```{r}
+msu_records <- EUtilsGet(msu_search)
+class(msu_records) 
+```
+
+##Retrieval of abstracts from PubMed
+```{r}
+pubmed_data <- data.frame('Title'=ArticleTitle(msu_records),'Abstract'=AbstractText(msu_records))
+head(pubmed_data,2)
+```
+
+##Storage of retrieved abstract in the form of individual text document in a directory called C:/Corpus
+```{r}
+for (Abs in 1:82)
+{
+doc1 <- data.frame(pubmed_data[Abs, ])
+doc2 <- file.path("c:/corpus", paste0(Abs, ".txt"))
+write.table(doc1, file = doc2, sep = "", row.names = FALSE, col.names = FALSE, quote = FALSE,
+append = FALSE)
+}
+years <- YearPubmed(msu_records)
+msu_pubs_count <- as.data.frame(table(years))
+summary(msu_search)
+```
+
+##Set location
+```{r}
+#cname <- file.path("C:", "corpus")  
+#cname
+#dir(cname)
+```
+
+
+ 
+## Convert to querycount per year
+```{r}
+total <- NULL
+for (i in 2010:2018){
+peryear <- EUtilsSummary("", type="esearch", db="pubmed", mindate=i, maxdate=i)
+total[i] <- QueryCount(peryear)
+}
+```
+
+ 
+## Convert to normalized data
+```{r}
+year <- 2010:2018
+total_pubs_count<- as.data.frame(cbind(year,total[year]))
+names(total_pubs_count) <- c("year","Total_publications")
+names(msu_pubs_count) <-  c("year","MSU_publications")
+pubs_year <-  merge(msu_pubs_count,total_pubs_count,by="year")
+pubs_year$MSU_publications_normalized <-  pubs_year$MSU_publications *100000 / pubs_year$Total_publications
+```
+
+
+## Write table
+```{r}
+write.table(pubs_year,"MSU_publications_per_year.txt",quote=F,sep="\t",row.names=F)
+```
+
+
+## Find which journals publications come from
+```{r}
+journal <- MedlineTA(msu_records)
+msu_journal_count <- as.data.frame(table(journal))
+msu_journal_count_top25 <- msu_journal_count[order(-msu_journal_count[,2]),][1:25,]
+```
+
+## Find top 25 journals from previous list
+```{r}
+journal_names <- paste(msu_journal_count_top25$journal,"[jo]",sep="")
+```
+ 
+
+## Count publications per journal
+```{r}
+total_journal <- NULL
+for (i in journal_names){
+perjournal <- EUtilsSummary(i, type='esearch', db='pubmed',mindate=2010, maxdate=2018)
+total_journal[i] <- QueryCount(perjournal)
+}
+```
+
+## Combine publications and journals, normalizing happens here
+```{r}
+journal_msu_total <- cbind(msu_journal_count_top25,total_journal)
+names(journal_msu_total) <- c("journal","MSU_publications","Total_publications")
+journal_msu_total$MSU_publications_normalized <- journal_msu_total$MSU_publications / journal_msu_total$Total_publications
+```
+ 
+## Write table for journals
+```{r}
+write.table(journal_msu_total,"MSU_publications_per_journal.txt",quote=F,sep="\t",row.names=F)
+```
+ 
+## Sort journals, publications per year
+```{r}
+pubs_per_year <- read.table("MSU_publications_per_year.txt",header = T,sep="\t")
+pubs_per_journal <- read.table("MSU_publications_per_journal.txt",header = T,sep="\t")
+```
+
+## Plot number of publications
+```{r}
+ggplot(pubs_per_year,aes(year, MSU_publications_normalized)) + geom_line (colour="orange",size=2) +
+xlab("Year") +
+ylab("MSU articles")+
+ggtitle("MSU PubMed articles")
+View(pubs_per_year)
+```
+
+
+## Plot number of publications per journal
+```{r}
+ggplot(pubs_per_journal,aes(journal, MSU_publications,fill=journal)) + geom_bar(stat="identity")+
+coord_flip()+
+theme(legend.position="none")
+View(pubs_per_journal)
+```
+ 
+## Plot number of publications per journal - normalized
+```{r}
+ggplot(pubs_per_journal ,aes(journal, MSU_publications_normalized,fill=journal)) + geom_bar(stat="identity")+
+coord_flip()+
+theme(legend.position="none")
+View(pubs_per_journal)
+```
+ 
+
